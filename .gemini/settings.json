@@ -1,0 +1,24 @@
+{
+  "experimental": {
+    "enableAgents": true
+  },
+  "mcpServers": {
+    "sequential-thinking": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-sequential-thinking"
+      ],
+      "trust": true
+    },
+    "drukarnia-erp": {
+      "command": "php",
+      "args": [
+        "artisan",
+        "mcp:start",
+        "app"
+      ],
+      "trust": true
+    }
+  }
+}
