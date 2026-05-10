@@ -421,25 +421,18 @@ Dla ulotek, wizytówek, plakatów. `engine_type = sheet`.
    ```
 7. Return `EngineResult(unitType='sheet', unitsConsumed=sheets_final, imposition, materialCost, printCost, details={sheet_size, piece_size, sheets_base, sheets_final, mode:'simple'})`.
 
-#### `_pickSize` (z pliku 03)
+#### `_pickSize`
+
+Metoda `pickSize` została wydzielona do `MaterialPickerTrait` i jest współdzielona przez wszystkie silniki:
 
 ```php
-private function pickSize(Material $material, ?int $mediaFormatId): MaterialSize
-{
-    $q = $material->sizes()->with('mediaFormat');
-    if ($mediaFormatId !== null) {
-        $size = (clone $q)->where('media_format_id', $mediaFormatId)->first();
-        if ($size) return $size;
-    }
-    $size = $q->first();
-    if (!$size) {
-        throw new PriceCalculationException("Materiał '{$material->name}' nie ma zdefiniowanego rozmiaru (MaterialSize).");
-    }
-    return $size;
+class SheetEngine implements CalculationEngine {
+    use MaterialPickerTrait;
+    // ...
 }
 ```
 
-**Uwaga:** `LinearMeterEngine` **importuje** tę metodę (trait lub helper class). `MultipageEngine` ma własną kopię (duplikacja — zachowane z źródła).
+**Uwaga:** Rozwiązano duplikację — `MultipageEngine`, `SheetEngine` i `LinearMeterEngine` używają teraz wspólnego traita.
 
 ### 4.2 LinearMeterEngine — druk z rolki
 
@@ -751,6 +744,34 @@ Używany przez: `Product`, `ParameterOption`, `ZadrukOption`.
 **`SimpleParameterOption` NIE dziedziczy** — ma jedno pole `price DECIMAL(10,2) DEFAULT 0` (produkty proste nie mają marży).
 
 **Reguła NULL:** w pipeline `NULL → '0'` (`$item->cost_total ?? '0'`).
+
+### 7.1 MaterialPickerTrait
+
+**Plik:** `app/Traits/MaterialPickerTrait.php`
+
+```php
+namespace App\Traits;
+
+use App\Models\Parameters\{Material, MaterialSize};
+use App\Exceptions\PriceCalculationException;
+
+trait MaterialPickerTrait
+{
+    private function pickSize(Material $material, ?int $mediaFormatId): MaterialSize
+    {
+        $q = $material->sizes()->with('mediaFormat');
+        if ($mediaFormatId !== null) {
+            $size = (clone $q)->where('media_format_id', $mediaFormatId)->first();
+            if ($size) return $size;
+        }
+        $size = $q->first();
+        if (!$size) {
+            throw new PriceCalculationException("Materiał '{$material->name}' nie ma zdefiniowanego rozmiaru (MaterialSize).");
+        }
+        return $size;
+    }
+}
+```
 
 ---
 
