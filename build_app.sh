@@ -9,15 +9,22 @@ if [ ! -f "frankenphp" ]; then
     chmod +x frankenphp
 fi
 
+# Налаштовуємо глобальну змінну PHP_BINARY для Laravel (composer/artisan), щоб вони використовували frankenphp
+export PHP_BINARY=$(pwd)/frankenphp
+# Створюємо символічне посилання 'php', якщо його немає в PATH
+mkdir -p .bin
+ln -sf $(pwd)/frankenphp .bin/php
+export PATH=$(pwd)/.bin:$PATH
+
 if [ ! -f "composer.phar" ]; then
     echo "Downloading Composer..."
     curl -sS https://getcomposer.org/installer -o composer-setup.php
-    ./frankenphp php-cli composer-setup.php
+    php composer-setup.php
     rm composer-setup.php
 fi
 
 echo "Installing PHP dependencies..."
-./frankenphp php-cli composer.phar install --no-dev --optimize-autoloader
+php composer.phar install --no-dev --optimize-autoloader
 
 echo "Installing Node dependencies..."
 npm install
@@ -26,8 +33,11 @@ echo "Building assets..."
 npm run build
 
 echo "Clearing caches..."
-./frankenphp php-cli artisan config:clear || true
-./frankenphp php-cli artisan route:clear || true
-./frankenphp php-cli artisan view:clear || true
+php artisan config:clear || true
+php artisan route:clear || true
+php artisan view:clear || true
+
+echo "Running migrations..."
+php artisan migrate --force || true
 
 echo "Build finished!"
